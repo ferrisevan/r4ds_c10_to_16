@@ -40,7 +40,7 @@ csv_path <- "../data/handb_ptest.csv"   # <-- update if needed
 **Task:** Read the CSV into an object called `raw`, then preview it.
 
 ```{r}
-# YOUR CODE HERE
+handb_ptest <- read.csv(data/handb_ptest.csv)
 ```
 
 ------------------------------------------------------------------------
@@ -65,7 +65,33 @@ In the raw Google Forms export, the response columns have long names that includ
 **Task D:** Make a **box plot** of `percent` by `chart_type` (no log transform).
 
 ```{r}
-# YOUR CODE HERE
+tidy <- handb_ptest |>
+  pivot_longer(
+    cols      = 2:19,
+    names_to  = "question",
+    values_to = "score"
+  ) |>
+  filter(str_detect(question, "approximately")) |>
+  mutate(score = parse_number(score)) |>
+  filter(!is.na(score)) |>
+  mutate(
+    suffix     = as.numeric(str_extract(question, "(?<=\\.\\.\\.)[0-9]+")),
+    suffix     = if_else(is.na(suffix), 3, suffix),
+    chart_num  = (suffix - 1) / 2,
+    chart_type = paste0("T", chart_num)
+  ) |>
+  select(Timestamp, chart_type, score)
+
+view(tidy)
+
+ggplot(tidy, aes(x = chart_type, y = score)) +
+  geom_boxplot(fill = "blue", alpha = 0.6, outlier.colour = "red") +
+  labs(
+    title = "Perceived Size by Chart Type",
+    x     = "Chart Type",
+    y     = "Estimated % (smaller or larger)"
+  ) +
+  theme_minimal()
 ```
 
 ------------------------------------------------------------------------
@@ -85,7 +111,28 @@ This method uses the idea that (after `Timestamp`) the remaining columns are the
 **Task E:** Make the same **box plot** of `percent` by `chart_type`.
 
 ```{r}
-# YOUR CODE HERE
+df <- handb_ptest |>
+  select(Timestamp, seq(3, 19, by = 2))
+df <- df |>
+  set_names(c("timestamp", paste0("T", 1:9)))
+df <- df |>
+  pivot_longer(
+    cols      = -timestamp,
+    names_to  = "chart_type",
+    values_to = "percent"
+  ) |>
+  mutate(percent = parse_number(percent)) |>
+  filter(!is.na(percent))
+view(df)
+
+ggplot(df, aes(x = chart_type, y = percent)) +
+  geom_boxplot(fill = "blue", alpha = 0.6, outlier.colour = "red") +
+  labs(
+    title = "Perceived Size by Chart Type",
+    x     = "Chart Type",
+    y     = "Estimated % (smaller or larger)"
+  ) +
+  theme_minimal()
 ```
 
 ------------------------------------------------------------------------
@@ -97,5 +144,7 @@ This method uses the idea that (after `Timestamp`) the remaining columns are the
 **Task B:** In 3–6 sentences, comment on what the box plots show. Does it give the same gist that we would expect from Heer and Bostock's results? If not, why not?
 
 ```{r}
-# YOUR CODE HERE
+## Task A: The two boxplots are identical. Both methods isolate the same 9 percent columns and produce the same output, just in a different order of operations.
+
+## Task B: T6 stands out with a lower median and way more spread than the rest. This makes sense given Heer and Bostock's findings that some encodings are harder to read than others. The other chart types look pretty similar to each other, which might just be because our sample is so much smaller than theirs.
 ```
